@@ -1,4 +1,4 @@
-#define ON 1
+#define ON 0
 
 #if ON == 1
 
@@ -16,6 +16,14 @@ bool isWireframe = false;           // 와이어프레임 모드 여부
 float posX = 0.0f, posY = 0.0f, posZ = -20.0f; // 객체의 위치
 float rotateY = 0.0f;               // Y축 회전 각도
 float rotateZ = 0.0f;               // Z축 회전 각도
+
+float lightAngle = 0.0f;                  // 조명의 회전 각도
+GLfloat lightColor[3][4] = {              // 조명 색상 배열
+    {1.0f, 1.0f, 1.0f, 1.0f},            // 흰색
+    {1.0f, 0.0f, 0.0f, 1.0f},            // 빨간색
+    {0.0f, 0.0f, 1.0f, 1.0f}             // 파란색
+};
+int currentLightColor = 0;                // 현재 조명 색상 인덱스
 
 // 각 행성과 달의 회전 각도 및 속도
 float anglePlanet1 = 0.0f, speedPlanet1 = 0.6f;
@@ -42,6 +50,8 @@ void init() {
     glEnable(GL_LIGHT0);     // 기본 조명 사용
     glEnable(GL_COLOR_MATERIAL); // 색상 재질 활성화
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f); // 배경색 검은색
+
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, lightColor[currentLightColor]);
 }
 
 // 디스플레이 콜백 함수
@@ -129,6 +139,22 @@ void display() {
     glPopMatrix();
     glPopMatrix();
 
+    // 조명 위치 및 표시
+    GLfloat lightPosition[] = {
+        10.0f * cos(lightAngle * PI / 180.0f), // 조명 x 좌표
+        0.0f,                                  // 조명 y 좌표
+        10.0f * sin(lightAngle * PI / 180.0f), // 조명 z 좌표
+        1.0f                                   // 점 광원
+    };
+    glLightfv(GL_LIGHT0, GL_POSITION, lightPosition); // 조명 위치 설정
+
+    // 조명의 위치를 나타내는 구
+    glPushMatrix();
+    glTranslatef(lightPosition[0], lightPosition[1], lightPosition[2]);
+    glColor3f(1.0f, 1.0f, 0.0f); // 노란색
+    drawSphere(0.5f);
+    glPopMatrix();
+
     glutSwapBuffers(); // 버퍼 교체
 }
 
@@ -153,7 +179,7 @@ void reshape(int width, int height) {
 // 업데이트 함수 (애니메이션)
 void idle() {
     // 각도 업데이트
-    anglePlanet1 += speedPlanet1;
+    /*anglePlanet1 += speedPlanet1;
     if (anglePlanet1 >= 360.0f) anglePlanet1 -= 360.0f;
 
     anglePlanet2 += speedPlanet2;
@@ -169,7 +195,10 @@ void idle() {
     if (angleMoon2 >= 360.0f) angleMoon2 -= 360.0f;
 
     angleMoon3 += speedMoon3;
-    if (angleMoon3 >= 360.0f) angleMoon3 -= 360.0f;
+    if (angleMoon3 >= 360.0f) angleMoon3 -= 360.0f;*/
+
+    lightAngle += 0.5f;
+    if (lightAngle >= 360.f) { lightAngle -= 360.f; }
 
     glutPostRedisplay(); // 화면 갱신 요청
 }

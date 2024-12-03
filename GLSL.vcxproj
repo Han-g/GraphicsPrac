@@ -142,6 +142,7 @@
     <ClCompile Include="22.cpp" />
     <ClCompile Include="24.cpp" />
     <ClCompile Include="25.cpp" />
+    <ClCompile Include="26.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="shader.cpp" />
   </ItemGroup>

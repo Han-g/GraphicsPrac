@@ -18,4 +18,4 @@ void make_fragmentShaders();
 GLuint make_shaderProgram();
 
 // 전역 변수 선언
-//extern GLuint vertexShader, fragmentShader, shaderProgram;
+extern GLuint vertexShader, fragmentShader, shaderProgram;

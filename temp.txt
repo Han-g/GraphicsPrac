@@ -1,0 +1,245 @@
+#include "shader.h"
+#include <cmath>
+#include <vector>
+#include <iostream>
+
+// 공 및 육면체 데이터 구조
+struct Ball {
+    glm::vec3 position;
+    glm::vec3 velocity;
+    float radius;
+};
+
+struct Cube {
+    glm::vec3 position;
+    float size;
+    float rotationZ; // Z축 회전
+};
+
+// 전역 변수
+GLuint ballVAO, ballVBO;
+GLuint cubeVAO, cubeVBO;
+
+std::vector<Cube> cubes;  // 육면체 리스트
+Ball ball;                // 공 객체
+
+glm::mat4 projection, view; // 카메라 행렬
+float gravity = -0.005f;    // 중력
+const float BOX_SIZE = 5.0f;
+
+// 초기화 함수
+void init() {
+    glewInit();
+
+    // OpenGL 기본 설정
+    glEnable(GL_DEPTH_TEST);
+    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+
+    // 공 초기화
+    ball = { {0.0f, 0.0f, 0.0f}, {0.02f, 0.02f, 0.03f}, 0.1f };
+
+    // 육면체 초기화
+    cubes.push_back({ {-1.0f, -1.0f, -1.0f}, 1.0f, 0.0f });
+    cubes.push_back({ {2.0f, -1.0f, -0.5f}, 1.5f, 0.0f });
+    cubes.push_back({ {-2.0f, -1.0f, 1.0f}, 0.8f, 0.0f });
+
+    // 쉐이더 컴파일 및 프로그램 생성
+    make_vertexShaders();
+    make_fragmentShaders();
+    shaderProgram = make_shaderProgram();
+
+    // 공 VAO/VBO 설정
+    int thetaSteps = 12;
+    int phiSteps = 6;
+    int vertexCount = thetaSteps * phiSteps * 6; // 각 사각형을 두 개의 삼각형으로 분할
+    float* ballVertices = new float[vertexCount * 3];
+
+    int idx = 0;
+    for (int i = 0; i < thetaSteps; ++i) {
+        float theta1 = i * glm::pi<float>() * 2 / thetaSteps;
+        float theta2 = (i + 1) * glm::pi<float>() * 2 / thetaSteps;
+
+        for (int j = 0; j < phiSteps; ++j) {
+            float phi1 = j * glm::pi<float>() / phiSteps;
+            float phi2 = (j + 1) * glm::pi<float>() / phiSteps;
+
+            // 첫 번째 삼각형
+            ballVertices[idx++] = glm::sin(phi1) * glm::cos(theta1);
+            ballVertices[idx++] = glm::cos(phi1);
+            ballVertices[idx++] = glm::sin(phi1) * glm::sin(theta1);
+
+            ballVertices[idx++] = glm::sin(phi2) * glm::cos(theta1);
+            ballVertices[idx++] = glm::cos(phi2);
+            ballVertices[idx++] = glm::sin(phi2) * glm::sin(theta1);
+
+            ballVertices[idx++] = glm::sin(phi2) * glm::cos(theta2);
+            ballVertices[idx++] = glm::cos(phi2);
+            ballVertices[idx++] = glm::sin(phi2) * glm::sin(theta2);
+
+            // 두 번째 삼각형
+            ballVertices[idx++] = glm::sin(phi1) * glm::cos(theta1);
+            ballVertices[idx++] = glm::cos(phi1);
+            ballVertices[idx++] = glm::sin(phi1) * glm::sin(theta1);
+
+            ballVertices[idx++] = glm::sin(phi2) * glm::cos(theta2);
+            ballVertices[idx++] = glm::cos(phi2);
+            ballVertices[idx++] = glm::sin(phi2) * glm::sin(theta2);
+
+            ballVertices[idx++] = glm::sin(phi1) * glm::cos(theta2);
+            ballVertices[idx++] = glm::cos(phi1);
+            ballVertices[idx++] = glm::sin(phi1) * glm::sin(theta2);
+        }
+    }
+
+    glGenVertexArrays(1, &ballVAO);
+    glGenBuffers(1, &ballVBO);
+    glBindVertexArray(ballVAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, ballVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(ballVertices), ballVertices, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
+    // 육면체 VAO/VBO 설정
+    float cubeVertices[] = {
+        // 뒷면 (Red)
+    -0.5f, -0.5f, -0.5f,  1.0f, 0.0f, 0.0f,
+     0.5f, -0.5f, -0.5f,  1.0f, 0.0f, 0.0f,
+     0.5f,  0.5f, -0.5f,  1.0f, 0.0f, 0.0f,
+    -0.5f,  0.5f, -0.5f,  1.0f, 0.0f, 0.0f,
+
+    // 앞면 (Green)
+    -0.5f, -0.5f,  0.5f,  0.0f, 1.0f, 0.0f,
+     0.5f, -0.5f,  0.5f,  0.0f, 1.0f, 0.0f,
+     0.5f,  0.5f,  0.5f,  0.0f, 1.0f, 0.0f,
+    -0.5f,  0.5f,  0.5f,  0.0f, 1.0f, 0.0f,
+
+    // 왼쪽 (Blue)
+    -0.5f, -0.5f, -0.5f,  0.0f, 0.0f, 1.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f, 1.0f,
+    -0.5f,  0.5f,  0.5f,  0.0f, 0.0f, 1.0f,
+    -0.5f,  0.5f, -0.5f,  0.0f, 0.0f, 1.0f,
+
+    // 오른쪽 (Yellow)
+     0.5f, -0.5f, -0.5f,  1.0f, 1.0f, 0.0f,
+     0.5f, -0.5f,  0.5f,  1.0f, 1.0f, 0.0f,
+     0.5f,  0.5f,  0.5f,  1.0f, 1.0f, 0.0f,
+     0.5f,  0.5f, -0.5f,  1.0f, 1.0f, 0.0f,
+
+     // 위쪽 (Cyan)
+     -0.5f,  0.5f, -0.5f,  0.0f, 1.0f, 1.0f,
+      0.5f,  0.5f, -0.5f,  0.0f, 1.0f, 1.0f,
+      0.5f,  0.5f,  0.5f,  0.0f, 1.0f, 1.0f,
+     -0.5f,  0.5f,  0.5f,  0.0f, 1.0f, 1.0f,
+
+     // 아래쪽 (Magenta)
+     -0.5f, -0.5f, -0.5f,  1.0f, 0.0f, 1.0f,
+     -0.5f, -0.5f,  0.5f,  1.0f, 0.0f, 1.0f,
+      0.5f, -0.5f,  0.5f,  1.0f, 0.0f, 1.0f,
+      0.5f, -0.5f, -0.5f,  1.0f, 0.0f, 1.0f
+    };
+
+    glGenVertexArrays(1, &cubeVAO);
+    glGenBuffers(1, &cubeVBO);
+    glBindVertexArray(cubeVAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), cubeVertices, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+}
+
+// 공 및 육면체 업데이트
+void updateBall() {
+    ball.position += ball.velocity;
+    ball.velocity.y += gravity;
+
+    // 벽 충돌 감지
+    if (ball.position.x - ball.radius < -BOX_SIZE || ball.position.x + ball.radius > BOX_SIZE)
+        ball.velocity.x = -ball.velocity.x;
+    if (ball.position.y - ball.radius < -BOX_SIZE || ball.position.y + ball.radius > BOX_SIZE)
+        ball.velocity.y = -ball.velocity.y;
+    if (ball.position.z - ball.radius < -BOX_SIZE || ball.position.z + ball.radius > BOX_SIZE)
+        ball.velocity.z = -ball.velocity.z;
+}
+
+void updateCubes() {
+    for (auto& cube : cubes) {
+        cube.rotationZ += 0.5f;
+        if (cube.rotationZ > 360.0f)
+            cube.rotationZ -= 360.0f;
+    }
+}
+
+// 렌더링 함수
+void renderBall() {
+    glUseProgram(shaderProgram);
+
+    glm::mat4 model = glm::translate(glm::mat4(1.0f), ball.position);
+    
+    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
+    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
+    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+
+    glBindVertexArray(ballVAO);
+    glDrawArrays(GL_TRIANGLES, 0, 36); // 구체는 삼각형으로 렌더링
+    glBindVertexArray(0);
+}
+
+void renderCube(const Cube& cube) {
+    glUseProgram(shaderProgram);
+
+    glm::mat4 model = glm::translate(glm::mat4(1.0f), cube.position);
+    model = glm::rotate(model, glm::radians(cube.rotationZ), glm::vec3(0.0f, 0.0f, 1.0f));
+    
+    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
+    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
+    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+
+    glBindVertexArray(cubeVAO);
+    glDrawArrays(GL_QUADS, 0, 24); // 큐브는 사각형 렌더링
+    glBindVertexArray(0);
+}
+
+void display() {
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // 카메라 설정
+    view = glm::lookAt(glm::vec3(0.0f, 0.0f, -10.0f), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    projection = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f);
+
+    // 공 및 육면체 렌더링
+    renderBall();
+    for (const auto& cube : cubes) {
+        renderCube(cube);
+    }
+
+    glutSwapBuffers();
+}
+
+int main(int argc, char** argv) {
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
+    glutInitWindowSize(800, 600);
+    glutCreateWindow("Shader Example");
+
+    init();
+
+    glutDisplayFunc(display);
+    glutIdleFunc([]() {
+        updateBall();
+        updateCubes();
+        glutPostRedisplay();
+        });
+
+    glutMainLoop();
+    return 0;
+}

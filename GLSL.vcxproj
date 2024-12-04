@@ -143,6 +143,7 @@
     <ClCompile Include="24.cpp" />
     <ClCompile Include="25.cpp" />
     <ClCompile Include="26.cpp" />
+    <ClCompile Include="29.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="shader.cpp" />
   </ItemGroup>
@@ -152,6 +153,7 @@
     <None Include="fragment.glsl" />
     <None Include="pongFragment.glsl" />
     <None Include="pongVertex.glsl" />
+    <None Include="textureFragment.glsl" />
     <None Include="vertex.glsl" />
   </ItemGroup>
   <ItemGroup>

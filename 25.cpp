@@ -17,14 +17,16 @@ float posX = 0.0f, posY = 0.0f, posZ = -20.0f; // 객체의 위치
 float rotateY = 0.0f;               // Y축 회전 각도
 float rotateZ = 0.0f;               // Z축 회전 각도
 
+float y = 1;
+
 float lightAngle = 0.0f;                  // 조명의 회전 각도
 GLfloat lightColor[3][4] = {              // 조명 색상 배열
     {1.0f, 1.0f, 1.0f, 1.0f},            // 흰색
     {1.0f, 0.0f, 0.0f, 1.0f},            // 빨간색
     {0.0f, 0.0f, 1.0f, 1.0f}             // 파란색
 };
-int currentLightColor = 0;                // 현재 조명 색상 인덱스
-
+int lightColorIndex = 0;                // 현재 조명 색상 인덱스
+    
 // 각 행성과 달의 회전 각도 및 속도
 float anglePlanet1 = 0.0f, speedPlanet1 = 0.6f;
 float anglePlanet2 = 0.0f, speedPlanet2 = 0.4f;
@@ -51,7 +53,7 @@ void init() {
     glEnable(GL_COLOR_MATERIAL); // 색상 재질 활성화
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f); // 배경색 검은색
 
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, lightColor[currentLightColor]);
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, lightColor[lightColorIndex]);
 }
 
 // 디스플레이 콜백 함수
@@ -142,7 +144,7 @@ void display() {
     // 조명 위치 및 표시
     GLfloat lightPosition[] = {
         10.0f * cos(lightAngle * PI / 180.0f), // 조명 x 좌표
-        0.0f,                                  // 조명 y 좌표
+        10.0f * y,                             // 조명 y 좌표
         10.0f * sin(lightAngle * PI / 180.0f), // 조명 z 좌표
         1.0f                                   // 점 광원
     };
@@ -150,7 +152,7 @@ void display() {
 
     // 조명의 위치를 나타내는 구
     glPushMatrix();
-    glTranslatef(lightPosition[0], lightPosition[1], lightPosition[2]);
+    glTranslatef(lightPosition[0], lightPosition[1] * y, lightPosition[2]);
     glColor3f(1.0f, 1.0f, 0.0f); // 노란색
     drawSphere(0.5f);
     glPopMatrix();
@@ -197,7 +199,7 @@ void idle() {
     angleMoon3 += speedMoon3;
     if (angleMoon3 >= 360.0f) angleMoon3 -= 360.0f;*/
 
-    lightAngle += 0.5f;
+    lightAngle += 0.05f;
     if (lightAngle >= 360.f) { lightAngle -= 360.f; }
 
     glutPostRedisplay(); // 화면 갱신 요청
@@ -206,6 +208,13 @@ void idle() {
 // 키보드 입력 처리 함수
 void keyboard(unsigned char key, int x, int y) {
     switch (key) {
+
+    case 'c': // 조명 색상 변경
+        lightColorIndex = (lightColorIndex + 1) % 3;
+        init();
+        break;
+    case 'y':
+        y *= -1;
     case 'p':
     case 'P':
         isPerspective = !isPerspective;
@@ -231,24 +240,6 @@ void keyboard(unsigned char key, int x, int y) {
         break;
     case 'd':
         posX += 0.5f;
-        break;
-    case '+':
-        posZ += 0.5f;
-        break;
-    case '-':
-        posZ -= 0.5f;
-        break;
-    case 'y':
-        rotateY += 5.0f;
-        break;
-    case 'Y':
-        rotateY -= 5.0f;
-        break;
-    case 'z':
-        rotateZ += 5.0f;
-        break;
-    case 'Z':
-        rotateZ -= 5.0f;
         break;
     case 27: // ESC 키
         exit(0);

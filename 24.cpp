@@ -289,6 +289,7 @@ GLvoid drawScene() {
 
     hFlag ? glEnable(GL_DEPTH_TEST) : glDisable(GL_DEPTH_TEST);//은면제거
     wFlag ? glPolygonMode(GL_FRONT_AND_BACK, GL_FILL) : glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);//와이어 객체
+    glEnable(GL_CULL_FACE);
 
     unsigned int modelLocation = glGetUniformLocation(shaderID, "modelTransform");//월드 변환 행렬값을 셰이더의 uniform mat4 modelTransform에게 넘겨줌
     unsigned int viewLocation = glGetUniformLocation(shaderID, "viewTransform");//위와 동일
@@ -299,29 +300,6 @@ GLvoid drawScene() {
     unsigned int lightColorLoc = glGetUniformLocation(shaderID, "lightColor");
     unsigned int objectColorLoc = glGetUniformLocation(shaderID, "objectColor");
 
-    ////원근 투영
-    //glm::mat4 kTransform = glm::mat4(1.0f);
-    //kTransform = glm::perspective(glm::radians(45.0f), 1.0f, 0.1f, 50.0f);
-    //kTransform = glm::translate(kTransform, glm::vec3(0.0, 0.0, -5.0f));
-    //glUniformMatrix4fv(projectionLocation, 1, GL_FALSE, &kTransform[0][0]);
-
-    ////뷰잉 변환
-    //glm::mat4 vTransform = glm::mat4(1.0f);
-    //glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 1.0f); //--- 카메라 위치
-    //glm::vec3 cameraDirection = glm::vec3(0.0f, 0.0f, 0.0f); //--- 카메라 바라보는 방향
-    //glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f); //--- 카메라 위쪽 방향
-
-    //vTransform = glm::lookAt(cameraPos, cameraDirection, cameraUp);
-    //glUniformMatrix4fv(viewLocation, 1, GL_FALSE, &vTransform[0][0]);
-
-    ////축
-    //glm::mat4 axisTransForm = glm::mat4(1.0f);//변환 행렬 생성 T
-    //axisTransForm = glm::rotate(axisTransForm, glm::radians(30.f), glm::vec3(1.0, 0.0, 0.0));//x축에 대하여 30도 회전
-    //axisTransForm = glm::rotate(axisTransForm, glm::radians(30.f), glm::vec3(0.0, 1.0, 0.0));//y축에 대하여 30도 회전
-    //glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(axisTransForm));//변환 행렬을 셰이더에 전달
-    //glDrawArrays(GL_LINES, 24, 6);//저장해둔 배열의 24번째 값부터 6개 사용
-
-
     //glm::mat4 shapeTransForm = glm::mat4(1.0f);//변환 행렬 생성 T
     //shapeTransForm = glm::translate(shapeTransForm, glm::vec3(xTrans, yTrans, 0.0));//이동
     //shapeTransForm = glm::rotate(shapeTransForm, glm::radians(yAngle), glm::vec3(0.0, 1.0, 0.0));//y축 회전
@@ -331,7 +309,7 @@ GLvoid drawScene() {
 
      // 행렬 Uniform
     glm::mat4 model = glm::mat4(1.0f);
-    glm::mat4 view = glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    glm::mat4 view = glm::lookAt(glm::vec3(0.0f, 5.0f, 8.0f), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     glm::mat4 projection = glm::perspective(glm::radians(45.0f), 1.0f, 0.1f, 100.0f);
 
     glUniformMatrix4fv(glGetUniformLocation(shaderID, "model"), 1, GL_FALSE, glm::value_ptr(model));
@@ -340,7 +318,7 @@ GLvoid drawScene() {
 
     // 조명 정보
     glm::vec3 lightPos = glm::vec3(1.2f, 1.0f, 2.0f);
-    glm::vec3 viewPos = glm::vec3(0.0f, 0.0f, 3.0f);
+    glm::vec3 viewPos = glm::vec3(0.0f, 5.0f, 8.0f);
     glm::vec3 lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
     glm::vec3 objectColor = glm::vec3(1.0f, 0.0f, 0.2f);
 
@@ -376,11 +354,11 @@ GLvoid KeyBoard(unsigned char key, int x, int y) {
         wFlag = !wFlag;
         break;
     case 'c':
-        cFlag = false;
+        cFlag = true;
         InitBuffer();
         break;
     case 'p':
-        cFlag = true;
+        cFlag = false;
         InitBuffer();
         break;
     case 'x':
